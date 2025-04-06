@@ -147,7 +147,8 @@ if __name__ == "__main__":
         # For each L_batch, ab_batch from the train_loader
         # Check how accurate the images are to the colored one
         for L_batch in train_loader:
-            inputs, _ = L_batch.to(device)
+            # inputs, _ = L_batch.to(device)
+            inputs, _ = L_batch
 
             # clears gradient from prev step
             optimizer.zero_grad()
