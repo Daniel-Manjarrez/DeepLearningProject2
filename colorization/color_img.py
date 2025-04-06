@@ -10,6 +10,8 @@ Created on Sat Apr  5 20:48:03 2025
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchvision import transforms
+
 from colorization_dataset import ColorizationDataset
 from colorization_nn import ColorizationCNN
 
@@ -77,23 +79,33 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
 if __name__ == "__main__":
     
     # The folders where the grayscaled and colored images are located at
-    gray_dir = "Gray"
-    color_dir = "ColorfulOriginal"
+    l_dir = "L"
+    face_dir = "face_images"
     # All subfolders inside
-    gray_paths, color_paths = collect_image_paths(gray_dir, color_dir)
+    l_paths, face_paths = collect_image_paths(l_dir, face_dir)
+
+    transform = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x.permute(1, 2, 0).numpy()),
+    ])
     
     # Train/Test split, 90% training, 10% testing
-    train_gray, test_gray, train_color, test_color = train_test_split(
-        gray_paths, color_paths, test_size=0.1, random_state=42
-    )
+    # train_gray, test_gray, train_color, test_color = train_test_split(
+    #     gray_paths, color_paths, test_size=0.1, random_state=42
+    # )
+
+    # Train/Test split, 90% training, 10% splitting 
+    train_l = [l_paths[x] for x in range(int(len(l_paths) * 0.9))]
+    test_face = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
     
     # ColorizationDataset used to fetch images and convert to L, a*, b*
-    train_dataset = ColorizationDataset(train_gray, train_color, augment=True)
-    test_dataset = ColorizationDataset(test_gray, test_color, augment=False)
+    train_dataset = ColorizationDataset(train_l, transform=transform)
+    test_dataset = ColorizationDataset(test_face, transform=transform)
     
-    # Dataloader running 10 minibatches fortraining/testing (shuffle for training)
-    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=10, shuffle=False)
+    # Dataloader running 10 minibatches for training/testing (shuffle for training)
+    train_loader = DataLoader(train_l, batch_size=10, shuffle=True)
+    test_loader = DataLoader(test_face, batch_size=10, shuffle=False)
     
     # Grab custom made Colorization CNN model
     model = ColorizationCNN()
