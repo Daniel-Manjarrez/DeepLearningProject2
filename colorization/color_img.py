@@ -29,17 +29,29 @@ def collect_image_paths(gray_dir, color_dir):
     gray_paths = []
     color_paths = []
 
-    for subdir in os.listdir(gray_dir):
-        gray_subdir = os.path.join(gray_dir, subdir)
-        color_subdir = os.path.join(color_dir, subdir)
-        if not os.path.isdir(gray_subdir): continue
+    # for subdir in os.listdir(gray_dir):
+    #     gray_subdir = os.path.join(gray_dir, subdir)
+    #     color_subdir = os.path.join(color_dir, subdir)
+    #     if not os.path.isdir(gray_subdir): continue
 
-        for fname in os.listdir(gray_subdir):
-            g = os.path.join(gray_subdir, fname)
-            c = os.path.join(color_subdir, fname)
-            if os.path.exists(g) and os.path.exists(c):
-                gray_paths.append(g)
-                color_paths.append(c)
+    #     for fname in os.listdir(gray_subdir):
+    #         g = os.path.join(gray_subdir, fname)
+    #         c = os.path.join(color_subdir, fname)
+    #         if os.path.exists(g) and os.path.exists(c):
+    #             gray_paths.append(g)
+    #             color_paths.append(c)
+
+    for fname in os.listdir(gray_dir):
+        g = os.path.join(gray_dir, fname)
+        # c = os.path.join(color_subdir, fname)
+        if os.path.exists(g):
+            gray_paths.append(g)
+            # color_paths.append(c)
+
+    for fname in os.list(color_dir):
+        c = os.path.join(color_dir, fname)
+        if os.path.exists(c):
+            color_paths.append(c)
     
     return gray_paths, color_paths
 
