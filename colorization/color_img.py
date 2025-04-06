@@ -96,15 +96,15 @@ if __name__ == "__main__":
     # All subfolders inside
     l_paths, face_paths = collect_image_paths(l_dir, face_dir)
 
-    # transform = transforms.Compose([
-    #     transforms.Resize((128, 128)),
-    #     transforms.ToTensor(),
-    #     transforms.Lambda(lambda x: x.permute(1, 2, 0).numpy()),
-    # ])
-
     transform = transforms.Compose([
         transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x.permute(1, 2, 0).numpy()),
     ])
+
+    # transform = transforms.Compose([
+    #     transforms.Resize((128, 128)),
+    # ])
     
     # Train/Test split, 90% training, 10% testing
     # train_gray, test_gray, train_color, test_color = train_test_split(
@@ -169,10 +169,3 @@ if __name__ == "__main__":
     
     # After training, save predictions
     evaluate_and_save(model, test_loader, device=device)
-
-    
-    
-    
-    
-    
-    
