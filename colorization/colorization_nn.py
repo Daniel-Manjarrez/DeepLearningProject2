@@ -61,17 +61,17 @@ class ColorizationCNN(nn.Module):
         # )
         
         # Downsampling with Convolution, Batch Normalization
-        self.down1 = self.conv_block(1, 64)
-        self.down2 = self.conv_block(64, 128)
-        self.down3 = self.conv_block(128, 256)
-        self.down4 = self.conv_block(256, 512)
-        self.down5 = self.conv_block(512, 512)
+        self.down1 = self.upconv_layer(1, 64)
+        self.down2 = self.upconv_layer(64, 128)
+        self.down3 = self.upconv_layer(128, 256)
+        self.down4 = self.upconv_layer(256, 512)
+        self.down5 = self.upconv_layer(512, 512)
         
-        self.up5 = self.deconv_block(512, 512)
-        self.up4 = self.deconv_block(512, 256)
-        self.up3 = self.deconv_block(256, 128)
-        self.up2 = self.deconv_block(128, 64)
-        self.up1 = self.deconv_block(64, 2)  # Output 2 channels for a* and b*
+        self.up5 = self.downconv_layer(512, 512)
+        self.up4 = self.downconv_layer(512, 256)
+        self.up3 = self.downconv_layer(256, 128)
+        self.up2 = self.downconv_layer(128, 64)
+        self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
         
         
     
