@@ -98,6 +98,9 @@ if __name__ == "__main__":
     # Train/Test split, 90% training, 10% splitting 
     train_l = [l_paths[x] for x in range(int(len(l_paths) * 0.9))]
     test_face = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
+
+    print(len(train_l))
+    print(len(test_face))
     
     # ColorizationDataset used to fetch images and convert to L, a*, b*
     train_dataset = ColorizationDataset(train_l, transform=transform)
