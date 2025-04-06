@@ -5,6 +5,11 @@ import numpy as np
 from regressor import CNNRegressor
 
 def load_trained_model():
+    # Check if the trained model file exists
+    if not os.path.exists("best_cnn_regressor.pth"):
+        print("Error: 'best_cnn_regressor.pth' not found. Please run 'python regressor.py' to build and train the model first.")
+        exit()
+    
     # Load the trained model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = CNNRegressor().to(device)
