@@ -107,8 +107,8 @@ if __name__ == "__main__":
     model.to(device)
     
     
-    # Running with 20 epochs 
-    for epoch in range(20):
+    # Running with 10 epochs 
+    for epoch in range(10):
         # Train model first
         model.train()
         
