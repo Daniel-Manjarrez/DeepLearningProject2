@@ -48,7 +48,7 @@ def collect_image_paths(gray_dir, color_dir):
             gray_paths.append(g)
             # color_paths.append(c)
 
-    for fname in os.list(color_dir):
+    for fname in os.listdir(color_dir):
         c = os.path.join(color_dir, fname)
         if os.path.exists(c):
             color_paths.append(c)
