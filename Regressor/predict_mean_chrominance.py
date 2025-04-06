@@ -51,4 +51,3 @@ if __name__ == "__main__":
         print(f"Image: {image_filename}")
         print(f"Predicted mean chrominance: a* = {prediction[0][0]:.4f}, b* = {prediction[0][1]:.4f}")
         print(f"Actual mean chrominance: a* = {actual_a:.4f}, b* = {actual_b:.4f}")
-        print("-" * 50)
