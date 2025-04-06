@@ -1,4 +1,4 @@
-# Project 2 | Simple Learning Models for Computer Graphics: Classifiers and Regressors
+# Project 2 | Convolutional Neural Networks & Computer Graphics
  Image manipulation and two player games are common graphics applications. In this project, we
  evaluate the performance of classifiers and regressors on an image segmentation task, and
  a simple two player game. Our single classifier program generates statistical accuracy and
