@@ -137,28 +137,34 @@ if __name__ == "__main__":
     device = torch.device("cpu")
     model.to(device)
     
-    
+    total_loss = 0
+    num_epochs = 10
     # Running with 10 epochs 
-    for epoch in range(10):
+    for epoch in range(num_epochs):
         # Train model first
         model.train()
         
         # For each L_batch, ab_batch from the train_loader
         # Check how accurate the images are to the colored one
-        for L_batch, ab_batch in train_loader:
-            L_batch, ab_batch = L_batch.to(device), ab_batch.to(device)
-            preds = model(L_batch)
-            loss = criterion(preds, ab_batch)
-            
+        for L_batch in train_loader:
+            inputs, _ = L_batch.to(device)
+
             # clears gradient from prev step
             optimizer.zero_grad()
+            preds = model(L_batch)
+            loss = criterion(preds, inputs)
             # perform backpropagation
             loss.backward()
+
             # Update model's parameters 
             optimizer.step()
+
+            total_loss += loss.item()
         
         # Print out epoch results
-        print(f"Epoch {epoch+1}: Training Loss = {loss.item():.4f}")
+        # print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/loss.item():.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/len(train_loader):.4f}")
+
     
     # After training, save predictions
     evaluate_and_save(model, test_loader, device=device)
