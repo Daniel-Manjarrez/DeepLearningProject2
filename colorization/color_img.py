@@ -96,10 +96,14 @@ if __name__ == "__main__":
     # All subfolders inside
     l_paths, face_paths = collect_image_paths(l_dir, face_dir)
 
+    # transform = transforms.Compose([
+    #     transforms.Resize((128, 128)),
+    #     transforms.ToTensor(),
+    #     transforms.Lambda(lambda x: x.permute(1, 2, 0).numpy()),
+    # ])
+
     transform = transforms.Compose([
         transforms.Resize((128, 128)),
-        transforms.ToTensor(),
-        transforms.Lambda(lambda x: x.permute(1, 2, 0).numpy()),
     ])
     
     # Train/Test split, 90% training, 10% testing
@@ -111,8 +115,8 @@ if __name__ == "__main__":
     train_l = [l_paths[x] for x in range(int(len(l_paths) * 0.9))]
     test_face = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
 
-    print(len(train_l))
-    print(len(test_face))
+    # print(len(train_l))
+    # print(len(test_face))
     
     # ColorizationDataset used to fetch images and convert to L, a*, b*
     train_dataset = ColorizationDataset(train_l, transform=transform)

@@ -26,18 +26,17 @@ class ColorizationDataset(Dataset):
 
     def __getitem__(self, idx):
         img = Image.open(self.color_paths[idx]).convert("RGB")
-
         if self.transform:
             img = self.transform(img)
 
         lab = rgb2lab(np.array(img)).astype("float32")
-        lab[:, :, 0] = lab[:, :, 0] / 100.0  # Normalize L to [0, 1]
-        lab[:, :, 1:] = lab[:, :, 1:] / 128.0  # Normalize ab to [-1, 1]
+        lab[:, :, 0] = lab[:, :, 0] / 100.0      # Normalize L to [0, 1]
+        lab[:, :, 1:] = lab[:, :, 1:] / 128.0    # Normalize ab to [-1, 1]
 
         L = lab[:, :, 0:1]
         ab = lab[:, :, 1:]
 
-        L_tensor = torch.from_numpy(L).permute(2, 0, 1)
-        ab_tensor = torch.from_numpy(ab).permute(2, 0, 1)
+        L_tensor = torch.from_numpy(L).permute(2, 0, 1)  # Shape: [1, H, W]
+        ab_tensor = torch.from_numpy(ab).permute(2, 0, 1)  # Shape: [2, H, W]
 
         return L_tensor, ab_tensor
