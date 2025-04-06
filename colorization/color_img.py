@@ -123,8 +123,8 @@ if __name__ == "__main__":
     test_dataset = ColorizationDataset(test_face, transform=transform)
     
     # Dataloader running 10 minibatches for training/testing (shuffle for training)
-    train_loader = DataLoader(train_l, batch_size=10, shuffle=True)
-    test_loader = DataLoader(test_face, batch_size=10, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=10, shuffle=False)
     
     # Grab custom made Colorization CNN model
     model = ColorizationCNN()
