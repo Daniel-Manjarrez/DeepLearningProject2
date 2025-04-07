@@ -57,7 +57,7 @@ class ColorizationCNN(nn.Module):
             nn.ReLU(inplace=True)
         )
     
-    def downconv_layer(self, in_channels, out_channels, ksize=3, stride=2, padding=1, is_tanh=False):
+    def downconv_layer(self, in_channels, out_channels, ksize=4, stride=2, padding=1, is_tanh=False):
         if not is_tanh:
             return nn.Sequential(
                 nn.ConvTranspose2d(in_channels, out_channels, kernel_size=ksize, stride=stride, padding=padding),
