@@ -137,8 +137,6 @@ if __name__ == "__main__":
         # print(L_img)
         L_tensor = torch.tensor(L_img).unsqueeze(0)  # Shape: (1, H, W)
         tensor_l.append(L_tensor)
-    
-
 
     # print("Image: aug_0_0.jpg")
     # print(f"Predicted mean chrominance: a* = {prediction[0][0]:.4f}, b* = {prediction[0][1]:.4f}")

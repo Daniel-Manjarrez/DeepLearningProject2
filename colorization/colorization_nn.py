@@ -8,7 +8,6 @@ Created on Sat Apr  5 20:26:52 2025
 
 import torch
 import torch.nn as nn
-# import torch.nn.functional as F
 
 class ColorizationCNN(nn.Module):
     
