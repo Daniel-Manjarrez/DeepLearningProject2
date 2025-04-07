@@ -231,22 +231,6 @@ def generate_augmented_images(img_to_aug):
             filename = f"aug_{i}_{j}.jpg"
             cv2.imwrite(os.path.join(augmented_dir, filename), aug_img)
 
-            # Convert to LAB
-            # lab_img = cv2.cvtColor(aug_img, cv2.COLOR_BGR2LAB)
-            # L, a, b = cv2.split(lab_img)
-
-            # Save each channel
-            # cv2.imwrite(os.path.join(lab_dirs["L"], f"L_{i}_{j}.jpg"), L)
-
-            # Convert single channel a* and b* to 3-channel RGB (for visualization)
-            # a_corrected = cv2.merge([np.full_like(L, 128), a, np.full_like(b, 128)])
-            # a_rgb = cv2.cvtColor(a_corrected, cv2.COLOR_LAB2RGB)
-            # b_corrected = cv2.merge([np.full_like(L, 128), np.full_like(a, 128), b])
-            # b_rgb = cv2.cvtColor(b_corrected, cv2.COLOR_LAB2RGB)
-            # cv2.imwrite(os.path.join(lab_dirs["a"], f"a_{i}_{j}.jpg"), cv2.cvtColor(a_rgb, cv2.COLOR_RGB2BGR))
-            # cv2.imwrite(os.path.join(lab_dirs["b"], f"b_{i}_{j}.jpg"), cv2.cvtColor(b_rgb, cv2.COLOR_RGB2BGR))
-            # cv2.imwrite(os.path.join(lab_dirs["augmented"], f"lab_aug_{i}_{j}.jpg"), lab_img)
-
             counter += 1
 
     print(f"Generated and saved {counter} augmented images with LAB splits.")
@@ -344,10 +328,10 @@ def main():
         
         # Print out epoch results
         # print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/loss.item():.4f}")
-        print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/len(train_loader):.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
 
     
-    predict_dir = "PredictedColorizedImg"
+    predict_dir = os.path.join(base_dir, "PredictedColorizedImg")
     # Create folders if they do not exist
     os.makedirs(predict_dir, exist_ok=True)
 
