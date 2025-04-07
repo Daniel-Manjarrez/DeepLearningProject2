@@ -129,9 +129,11 @@ if __name__ == "__main__":
     for img in train_l:
         prediction, actual_a, actual_b = predict(img)
         tensor_pred_ab.append(prediction)
-        tensor_actual_ab(torch.tensor([actual_a, actual_b], dtype=torch.float32))
-        L_img = cv2.imread(img)
-        # L_img = L_img.astype(np.float32) / 100.0  # Normalize to [0, 1]
+        ab = np.stack((actual_a, actual_b), axis=0) # Shape: [2, H, W]
+        tensor_actual_ab.append(torch.from_numpy(ab).float())
+        L_img = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
+        # L_img = L_img.astype(np.float32) / 100.0
+        L_img = L_img.astype(np.float32) / 100.0  # Normalize to [0, 1]
         print(L_img)
         L_tensor = torch.tensor(L_img).unsqueeze(0)  # Shape: (1, H, W)
         tensor_l.append(L_tensor)
