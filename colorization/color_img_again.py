@@ -259,7 +259,7 @@ def main():
     #     return
     
 
-    aug_dir = os.path.join(base_dir, "augmented")
+    aug_dir = os.path.join(base_dir, "augmented/")
 
     if os.path.exists(aug_dir):
         files = glob.glob(aug_dir)
@@ -331,7 +331,7 @@ def main():
         print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
 
     
-    predict_dir = os.path.join(base_dir, "PredictedColorizedImg")
+    predict_dir = os.path.join(base_dir, "PredictedColorizedImg/")
     # Create folders if they do not exist
     os.makedirs(predict_dir, exist_ok=True)
 
