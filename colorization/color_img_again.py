@@ -20,14 +20,6 @@ class ColorizationCNN(nn.Module):
     
     def __init__(self):
         super(ColorizationCNN, self).__init__()
-        
-        # Downsampling with Convolution, Batch Normalization
-        # self.down1 = self.upconv_layer(1, 64, 3, 1, 1)
-        # self.down2 = self.upconv_layer(64, 128)
-        # self.down3 = self.upconv_layer(128, 256)
-        # self.down4 = self.upconv_layer(256, 512)
-        # self.down5 = self.upconv_layer(512, 1024)
-        # self.down6 = self.upconv_layer(1024, 2048)
 
         # Downsampling with Convolution, Batch Normalization
         self.down1 = self.upconv_layer(1, 64)
@@ -41,18 +33,6 @@ class ColorizationCNN(nn.Module):
         self.up3 = self.downconv_layer(256, 128)
         self.up2 = self.downconv_layer(128, 64)
         self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
-        
-        # self.up5 = self.downconv_layer(512, 512)
-        # self.up4 = self.downconv_layer(512, 256)
-        # self.up3 = self.downconv_layer(256, 128)
-        # self.up2 = self.downconv_layer(128, 64)
-        # self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
-        # self.up6 = self.downconv_layer(2048, 1024)
-        # self.up5 = self.downconv_layer(1024, 512)
-        # self.up4 = self.downconv_layer(512, 256)
-        # self.up3 = self.downconv_layer(256, 128)
-        # self.up2 = self.downconv_layer(128, 64)
-        # self.up1 = self.downconv_layer(64, 2, ksize=3, stride = 1, padding=1)
     
     def upconv_layer(self, in_channels, out_channels, ksize = 3, stride = 2, padding =1):
         return nn.Sequential(
@@ -75,7 +55,6 @@ class ColorizationCNN(nn.Module):
                 nn.Tanh()
             )
     
-        
     def forward(self, x):
         # Performing downsampling
         x = self.down1(x)
@@ -83,10 +62,8 @@ class ColorizationCNN(nn.Module):
         x = self.down3(x)
         x = self.down4(x)
         x = self.down5(x)
-        # x = self.down6(x)
 
         # Performing upsampling
-        # x = self.up6(x)
         x = self.up5(x)
         x = self.up4(x)
         x = self.up3(x)
@@ -127,7 +104,10 @@ class ColorizationDataset(Dataset):
 
 # ==== TEST, EVALUATE, AND SAVE MODEL IMAGES ====
 def evaluate_and_save(model, test_loader, device, output_folder="PredictedColorizedImg"):
+    # make the PredictedColorizedImg directory if it exist
     os.makedirs(output_folder, exist_ok=True)
+
+    # Evaluate the model 
     model.eval()
     total_loss = 0
     count = 0
@@ -137,9 +117,10 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
             L_batch = L_batch.to(device)
             ab_batch = ab_batch.to(device)
             preds = model(L_batch)
-            loss = nn.functional.mse_loss(preds, ab_batch, reduction='sum')
+            loss = nn.functional.mse_loss(preds, ab_batch, reduction='mean')
             total_loss += loss.item()
-            count += L_batch.size(0)
+            # count += L_batch.size(0)
+            count += 1
 
             # Save RGB colorized results
             for j in range(L_batch.size(0)):
@@ -153,34 +134,25 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
                 img = Image.fromarray(rgb_img)
                 img.save(os.path.join(output_folder, f"test_img_{i*10 + j}.png"))
 
-    mse = total_loss / (count * 2 * 640 * 480)
+    # mse = total_loss / (count * 2 * 640 * 480)
+
+    # Print out mse loss of the testing
+    mse = total_loss / count
     print(f"Test MSE: {mse:.6f}")
 
 # ==== GENERATE AUGMENTED IMAGES ====
-
 def generate_augmented_images(img_to_aug):
         # Set torch float type
     torch.set_default_dtype(torch.float32)
 
     # Paths
-    # img_dir = "face_images/*.jpg"  # Adjust if needed
     augmented_dir = "augmented"
-    # lab_dirs = {
-    #     "L": "lab/L",
-    #     "a": "lab/a",
-    #     "b": "lab/b",
-    #     "augmented" : "lab/augmented"
-    # }
 
     # Create folders if they do not exist
     os.makedirs(augmented_dir, exist_ok=True)
-    # for folder in lab_dirs.values():
-    #     os.makedirs(folder, exist_ok=True)
 
-    # Load original images and resize to 128x128
-    # files = glob.glob(img_dir)
+    # Read in every image and resize them to 128 by 128
     original_images = []
-
     for f in img_to_aug:
         img = cv2.imread(f)  # BGR read in
         img = cv2.resize(img, (128, 128))
@@ -242,45 +214,49 @@ def main():
     # Get the current working directory (where the script is being run from)
     base_dir = os.getcwd()
 
-    # Construct the path to the 'augmented' directory
+    # Construct the path to the 'face_images' directory
     face_dir = os.path.join(base_dir, "face_images")
 
+    # Fetch all image filenames from the face_images folder
     face_paths = [os.path.join(face_dir, fname)
                             for fname in os.listdir(face_dir)
                             if fname.lower().endswith(('.jpg', '.jpeg', '.png'))]
     
+    # Split 90% of the face images to augment, 10% to remain the same
     train_size = 0.9
     test_size = 0.1
     to_augment, to_original = random_split(face_paths, [train_size, test_size])
 
-    # Check if the augmented directory exists
-    # if not os.path.exists(aug_dir):
-    #     print(f"Error: The directory '{aug_dir}' does not exist.")
-    #     return
-    
-
+    # Construct path to augmented directory
     aug_dir = os.path.join(base_dir, "augmented/")
 
+    # Delete all files inside the augmented directory if there are any
     if os.path.exists(aug_dir):
         files = glob.glob(os.path.join(aug_dir, '*'))
         for f in files:
             os.remove(f)
 
+    # Generated new augmented images
     generate_augmented_images(to_augment)
 
+    # Fetch all image file names in the augmented path
     aug_paths = [os.path.join(aug_dir, fname)
                             for fname in os.listdir(aug_dir)
                             if fname.lower().endswith(('.jpg', '.jpeg', '.png'))]
     
+    # Kinda redundant, but just changed variable name to store it in
     train_aug_paths = aug_paths
 
+    # Grab the L*, ab* colorized dataset
     train_dataset = ColorizationDataset(train_aug_paths)
     
-    # test_face_paths = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
+    # Redundant again, but keep the last 10% original into the test dataset
     test_face_paths = to_original
 
+    # Grab the L*, ab* of the actual face images
     test_dataset = ColorizationDataset(test_face_paths)
 
+    # DataLoad both the training and testing data set
     train_loader = DataLoader(train_dataset, batch_size=10, shuffle = True)
     test_loader = DataLoader(test_dataset, batch_size=10, shuffle=False)
 
@@ -290,15 +266,11 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Determine whether we're running the model on cuda or cpu 
-    # (for now just do cpu)
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device("cpu")
     model.to(device)
     
-    # total_loss = 0
+    # Running with 10 epochs
     num_epochs = 10
-
-    # Running with 10 epochs 
     for epoch in range(num_epochs):
         total_loss = 0
         # Train model first
@@ -306,7 +278,6 @@ def main():
         
         # For each L_batch, ab_batch from the train_loader
         # Check how accurate the images are to the colored one
-        # for L_batch, ab_batch in train_loader:
         for L_batch, ab_batch in train_loader:
             L_batch, ab_batch = L_batch.to(device), ab_batch.to(device)
 
@@ -329,10 +300,11 @@ def main():
         
         # Print out epoch results
         # print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/loss.item():.4f}")
-        # print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
-        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss:.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
+        # print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss:.4f}")
 
     
+    # Construct path to the predicted colorized img directory
     predict_dir = os.path.join(base_dir, "PredictedColorizedImg/")
     # Create folders if they do not exist
     os.makedirs(predict_dir, exist_ok=True)
