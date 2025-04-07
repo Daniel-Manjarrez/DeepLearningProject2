@@ -262,7 +262,7 @@ def main():
     aug_dir = os.path.join(base_dir, "augmented/")
 
     if os.path.exists(aug_dir):
-        files = glob.glob(aug_dir)
+        files = glob.glob(os.path.join(aug_dir, '*'))
         for f in files:
             os.remove(f)
 
@@ -295,11 +295,12 @@ def main():
     device = torch.device("cpu")
     model.to(device)
     
-    total_loss = 0
+    # total_loss = 0
     num_epochs = 10
 
     # Running with 10 epochs 
     for epoch in range(num_epochs):
+        total_loss = 0
         # Train model first
         model.train()
         
@@ -328,7 +329,8 @@ def main():
         
         # Print out epoch results
         # print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/loss.item():.4f}")
-        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
+        # print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss:.4f}")
 
     
     predict_dir = os.path.join(base_dir, "PredictedColorizedImg/")
@@ -337,7 +339,7 @@ def main():
 
     # Clear all files inside this folder from previous run
     if os.path.exists(predict_dir):
-        files = glob.glob(predict_dir)
+        files = glob.glob(os.path.join(predict_dir, '*'))
         for f in files:
             os.remove(f)
 
