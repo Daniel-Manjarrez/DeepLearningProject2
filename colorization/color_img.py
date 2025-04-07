@@ -134,7 +134,7 @@ if __name__ == "__main__":
         L_img = cv2.imread(img, cv2.IMREAD_GRAYSCALE)
         # L_img = L_img.astype(np.float32) / 100.0
         L_img = L_img.astype(np.float32) / 100.0  # Normalize to [0, 1]
-        print(L_img)
+        # print(L_img)
         L_tensor = torch.tensor(L_img).unsqueeze(0)  # Shape: (1, H, W)
         tensor_l.append(L_tensor)
     
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         # For each L_batch, ab_batch from the train_loader
         # Check how accurate the images are to the colored one
         # for L_batch, ab_batch in train_loader:
-        for L_batch, ab_batch, ab_act in tensor_l, tensor_pred_ab, tensor_actual_ab:
+        for L_batch, ab_batch, ab_act in zip(tensor_l, tensor_pred_ab, tensor_actual_ab):
             # inputs, ab_batch = L_batch.to(device), ab_batch.to(device)
             inputs = L_batch.to(device)
             # inputs, _ = L_batch
