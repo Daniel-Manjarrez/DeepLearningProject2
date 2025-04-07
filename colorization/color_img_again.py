@@ -236,4 +236,5 @@ def main():
     # After training, save predictions
     evaluate_and_save(model, test_loader, device=device)
 
-
+if __name__ == "__main__":
+    main()
