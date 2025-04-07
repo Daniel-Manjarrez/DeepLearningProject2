@@ -134,6 +134,9 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
 
 # ==== MAIN ====
 def main():
+
+    
+
     # Get the current working directory (where the script is being run from)
     base_dir = os.getcwd()
 

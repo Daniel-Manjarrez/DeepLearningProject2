@@ -2,11 +2,15 @@ import torch
 import torch.nn as nn
 import os
 import cv2
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 from PIL import Image
 import numpy as np
 from skimage.color import rgb2lab, lab2rgb
+from torchvision.transforms import ToTensor
+import random
+
+import glob
 
 # Set default tensor type
 torch.set_default_dtype(torch.float32)
@@ -105,18 +109,6 @@ class ColorizationDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        # # img = cv2.imread(self.image_paths[idx])
-        # img = Image.open(self.image_paths[idx]).convert("RGB")
-        # img = cv2.resize(img, (128, 128))  # Resize all to 128x128
-        # lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        # L, a, b = cv2.split(lab)
-        # L = L.astype(np.float32) / 100.0  # Normalize to [0, 1]
-
-        # # a_mean = a.mean() - 128.0  # Center a*
-        # # b_mean = b.mean() - 128.0  # Center b*
-        # L_tensor = torch.tensor(L).unsqueeze(0)  # Shape: (1, H, W)
-        # target = torch.tensor([a_mean, b_mean], dtype=torch.float32)
-        # return L_tensor, target
         img = Image.open(self.image_paths[idx]).convert("RGB")
         if self.transform:
             img = self.transform(img)
@@ -164,6 +156,102 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
     mse = total_loss / (count * 2 * 640 * 480)
     print(f"Test MSE: {mse:.6f}")
 
+# ==== GENERATE AUGMENTED IMAGES ====
+
+def generate_augmented_images(img_to_aug):
+        # Set torch float type
+    torch.set_default_dtype(torch.float32)
+
+    # Paths
+    # img_dir = "face_images/*.jpg"  # Adjust if needed
+    augmented_dir = "augmented"
+    # lab_dirs = {
+    #     "L": "lab/L",
+    #     "a": "lab/a",
+    #     "b": "lab/b",
+    #     "augmented" : "lab/augmented"
+    # }
+
+    # Create folders if they do not exist
+    os.makedirs(augmented_dir, exist_ok=True)
+    # for folder in lab_dirs.values():
+    #     os.makedirs(folder, exist_ok=True)
+
+    # Load original images and resize to 128x128
+    # files = glob.glob(img_dir)
+    original_images = []
+
+    for f in img_to_aug:
+        img = cv2.imread(f)  # BGR read in
+        img = cv2.resize(img, (128, 128))
+        original_images.append(img)
+
+    original_images = np.array(original_images)
+    print(f"Loaded {len(original_images)} images")
+
+    # Convert to tensor: [n_images, C, H, W]
+    original_tensor = torch.stack([ToTensor()(img) for img in original_images])
+    original_tensor = original_tensor.permute(0, 1, 2, 3)  # Still [N, C, H, W]
+
+    # Shuffle images
+    perm = torch.randperm(original_tensor.size(0))
+    original_tensor = original_tensor[perm]
+
+    # Data augmentation factor
+    AUG_FACTOR = 10
+    augmented_images = []
+
+    def augment_image(img):
+        # Random flip
+        if random.random() < 0.5:
+            img = cv2.flip(img, 1)
+
+        # Random crop and resize
+        h, w = img.shape[:2]
+        crop_size = random.randint(int(0.8 * h), h)
+        y = random.randint(0, h - crop_size)
+        x = random.randint(0, w - crop_size)
+        cropped = img[y:y+crop_size, x:x+crop_size]
+        cropped = cv2.resize(cropped, (128, 128))
+
+        # Random brightness scale
+        scale = random.uniform(0.6, 1.0)
+        scaled = np.clip(cropped * scale, 0, 255).astype(np.uint8)
+
+        return scaled
+
+    # Apply augmentation
+    counter = 0
+    for i in range(len(original_images)):
+        for j in range(AUG_FACTOR):
+            aug_img = augment_image(original_images[i])
+            augmented_images.append(aug_img)
+
+            # Save RGB version
+            filename = f"aug_{i}_{j}.jpg"
+            cv2.imwrite(os.path.join(augmented_dir, filename), aug_img)
+
+            # Convert to LAB
+            # lab_img = cv2.cvtColor(aug_img, cv2.COLOR_BGR2LAB)
+            # L, a, b = cv2.split(lab_img)
+
+            # Save each channel
+            # cv2.imwrite(os.path.join(lab_dirs["L"], f"L_{i}_{j}.jpg"), L)
+
+            # Convert single channel a* and b* to 3-channel RGB (for visualization)
+            # a_corrected = cv2.merge([np.full_like(L, 128), a, np.full_like(b, 128)])
+            # a_rgb = cv2.cvtColor(a_corrected, cv2.COLOR_LAB2RGB)
+            # b_corrected = cv2.merge([np.full_like(L, 128), np.full_like(a, 128), b])
+            # b_rgb = cv2.cvtColor(b_corrected, cv2.COLOR_LAB2RGB)
+            # cv2.imwrite(os.path.join(lab_dirs["a"], f"a_{i}_{j}.jpg"), cv2.cvtColor(a_rgb, cv2.COLOR_RGB2BGR))
+            # cv2.imwrite(os.path.join(lab_dirs["b"], f"b_{i}_{j}.jpg"), cv2.cvtColor(b_rgb, cv2.COLOR_RGB2BGR))
+            # cv2.imwrite(os.path.join(lab_dirs["augmented"], f"lab_aug_{i}_{j}.jpg"), lab_img)
+
+            counter += 1
+
+    print(f"Generated and saved {counter} augmented images with LAB splits.")
+
+
 
 # ==== MAIN ====
 def main():
@@ -171,28 +259,41 @@ def main():
     base_dir = os.getcwd()
 
     # Construct the path to the 'augmented' directory
-    aug_dir = os.path.join(base_dir, "augmented")
     face_dir = os.path.join(base_dir, "face_images")
-
-    # Check if the augmented directory exists
-    if not os.path.exists(aug_dir):
-        print(f"Error: The directory '{aug_dir}' does not exist.")
-        return
-    
-    aug_paths = [os.path.join(aug_dir, fname)
-                            for fname in os.listdir(aug_dir)
-                            if fname.lower().endswith(('.jpg', '.jpeg', '.png'))]
-    
-    train_aug_paths = [aug_paths[x] for x in range(int(len(aug_paths) * 0.9))]
-
-    train_dataset = ColorizationDataset(train_aug_paths)
-
 
     face_paths = [os.path.join(face_dir, fname)
                             for fname in os.listdir(face_dir)
                             if fname.lower().endswith(('.jpg', '.jpeg', '.png'))]
     
-    test_face_paths = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
+    train_size = 0.9
+    test_size = 0.1
+    to_augment, to_original = random_split(face_paths, [train_size, test_size])
+
+    # Check if the augmented directory exists
+    # if not os.path.exists(aug_dir):
+    #     print(f"Error: The directory '{aug_dir}' does not exist.")
+    #     return
+    
+
+    aug_dir = os.path.join(base_dir, "augmented")
+
+    if os.path.exists(aug_dir):
+        files = glob.glob(aug_dir)
+        for f in files:
+            os.remove(f)
+
+    generate_augmented_images(to_augment)
+
+    aug_paths = [os.path.join(aug_dir, fname)
+                            for fname in os.listdir(aug_dir)
+                            if fname.lower().endswith(('.jpg', '.jpeg', '.png'))]
+    
+    train_aug_paths = aug_paths
+
+    train_dataset = ColorizationDataset(train_aug_paths)
+    
+    # test_face_paths = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
+    test_face_paths = to_original
 
     test_dataset = ColorizationDataset(test_face_paths)
 
@@ -246,6 +347,16 @@ def main():
         print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/len(train_loader):.4f}")
 
     
+    predict_dir = "PredictedColorizedImg"
+    # Create folders if they do not exist
+    os.makedirs(predict_dir, exist_ok=True)
+
+    # Clear all files inside this folder from previous run
+    if os.path.exists(predict_dir):
+        files = glob.glob(predict_dir)
+        for f in files:
+            os.remove(f)
+
     # After training, save predictions
     evaluate_and_save(model, test_loader, device=device)
 
