@@ -35,7 +35,7 @@ class ColorizationCNN(nn.Module):
         self.up4 = self.downconv_layer(512, 256)
         self.up3 = self.downconv_layer(256, 128)
         self.up2 = self.downconv_layer(128, 64)
-        self.up1 = self.downconv_layer(64, 2, 3)
+        self.up1 = self.downconv_layer(64, 1, 1)
     
     def upconv_layer(self, in_channels, out_channels, ksize = 3, stride = 2, padding =1):
         return nn.Sequential(
