@@ -5,11 +5,10 @@ import torch
 import random
 import numpy as np
 
-from torchvision.transforms import ToTensor, ToPILImage
-from torchvision.transforms import Resize
+from torchvision.transforms import ToTensor
 
 # Set torch float type
-torch.set_default_tensor_type(torch.FloatTensor)
+torch.set_default_dtype(torch.float32)
 
 # Paths
 img_dir = "face_images/*.jpg"  # Adjust if needed
@@ -88,10 +87,12 @@ for i in range(len(original_images)):
         cv2.imwrite(os.path.join(lab_dirs["L"], f"L_{i}_{j}.jpg"), L)
 
         # Convert single channel a* and b* to 3-channel RGB (for visualization)
-        a_rgb = cv2.merge([a, a, a])
-        b_rgb = cv2.merge([b, b, b])
-        cv2.imwrite(os.path.join(lab_dirs["a"], f"a_{i}_{j}.jpg"), a_rgb)
-        cv2.imwrite(os.path.join(lab_dirs["b"], f"b_{i}_{j}.jpg"), b_rgb)
+        a_corrected = cv2.merge([np.full_like(L, 128), a, np.full_like(b, 128)])
+        a_rgb = cv2.cvtColor(a_corrected, cv2.COLOR_LAB2RGB)
+        b_corrected = cv2.merge([np.full_like(L, 128), np.full_like(a, 128), b])
+        b_rgb = cv2.cvtColor(b_corrected, cv2.COLOR_LAB2RGB)
+        cv2.imwrite(os.path.join(lab_dirs["a"], f"a_{i}_{j}.jpg"), cv2.cvtColor(a_rgb, cv2.COLOR_RGB2BGR))
+        cv2.imwrite(os.path.join(lab_dirs["b"], f"b_{i}_{j}.jpg"), cv2.cvtColor(b_rgb, cv2.COLOR_RGB2BGR))
         cv2.imwrite(os.path.join(lab_dirs["augmented"], f"lab_aug_{i}_{j}.jpg"), lab_img)
 
         counter += 1
