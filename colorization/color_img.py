@@ -6,6 +6,9 @@ Created on Sat Apr  5 20:48:03 2025
 @author: mahdiali-raihan
 """
 
+import sys
+sys.path.append("../Regressor/")
+from predict_mean_chrominance import predict
 
 import torch
 import torch.nn as nn
@@ -22,6 +25,8 @@ from PIL import Image
 import numpy as np
 
 from sklearn.model_selection import train_test_split
+
+import cv2
 
 
 # Grabbing all subfolders from "Gray" and "ColorOriginal"
@@ -102,9 +107,9 @@ if __name__ == "__main__":
     #     transforms.Lambda(lambda x: x.permute(1, 2, 0).numpy()),
     # ])
 
-    transform = transforms.Compose([
-        transforms.Resize((128, 128)),
-    ])
+    # transform = transforms.Compose([
+    #     transforms.Resize((128, 128)),
+    # ])
     
     # Train/Test split, 90% training, 10% testing
     # train_gray, test_gray, train_color, test_color = train_test_split(
@@ -113,17 +118,46 @@ if __name__ == "__main__":
 
     # Train/Test split, 90% training, 10% splitting 
     train_l = [l_paths[x] for x in range(int(len(l_paths) * 0.9))]
+    tensor_pred_ab = []
+    tensor_actual_ab = []
+    tensor_l = []
+
+    base_dir = os.getcwd()
+    image_dir = os.path.join(base_dir, "L")
+    # image_path = os.path.join(image_dir, "aug_0_0.jpg")
+
+    for img in train_l:
+        prediction, actual_a, actual_b = predict(img)
+        tensor_pred_ab.append(prediction)
+        tensor_actual_ab(torch.tensor([actual_a, actual_b], dtype=torch.float32))
+        L_img = cv2.imread(img)
+        # L_img = L_img.astype(np.float32) / 100.0  # Normalize to [0, 1]
+        print(L_img)
+        L_tensor = torch.tensor(L_img).unsqueeze(0)  # Shape: (1, H, W)
+        tensor_l.append(L_tensor)
+    
+
+
+    # print("Image: aug_0_0.jpg")
+    # print(f"Predicted mean chrominance: a* = {prediction[0][0]:.4f}, b* = {prediction[0][1]:.4f}")
+    # print(f"Actual mean chrominance: a* = {actual_a:.4f}, b* = {actual_b:.4f}")
+
     test_face = [face_paths[int(len(face_paths) * 0.9) - 1 + x] for x in range(int(len(face_paths) * 0.1))]
 
     # print(len(train_l))
     # print(len(test_face))
     
     # ColorizationDataset used to fetch images and convert to L, a*, b*
-    train_dataset = ColorizationDataset(train_l, transform=transform)
-    test_dataset = ColorizationDataset(test_face, transform=transform)
+    # train_dataset = ColorizationDataset(train_l)
+    # train_dataset = 
+    test_dataset = ColorizationDataset(test_face, augment=False)
+
+    # L_tensor = torch.from_numpy(train_l).permute(2, 0, 1)
+    # test_dataset =
     
     # Dataloader running 10 minibatches for training/testing (shuffle for training)
-    train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True)
+    # train_loader = DataLoader(train_dataset, batch_size=10, shuffle=True)
+    # train_loader = DataLoader(L_tensor, batch_size=10, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=10, shuffle=False)
     
     # Grab custom made Colorization CNN model
@@ -146,14 +180,16 @@ if __name__ == "__main__":
         
         # For each L_batch, ab_batch from the train_loader
         # Check how accurate the images are to the colored one
-        for L_batch, ab_batch in train_loader:
-            inputs, ab_batch = L_batch.to(device), ab_batch.to(device)
+        # for L_batch, ab_batch in train_loader:
+        for L_batch, ab_batch, ab_act in tensor_l, tensor_pred_ab, tensor_actual_ab:
+            # inputs, ab_batch = L_batch.to(device), ab_batch.to(device)
+            inputs = L_batch.to(device)
             # inputs, _ = L_batch
 
             # clears gradient from prev step
             optimizer.zero_grad()
             preds = model(L_batch)
-            loss = criterion(preds, inputs)
+            loss = criterion(preds, ab_act)
             # perform backpropagation
             loss.backward()
 

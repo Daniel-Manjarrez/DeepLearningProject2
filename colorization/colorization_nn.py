@@ -14,80 +14,51 @@ class ColorizationCNN(nn.Module):
     
     def __init__(self):
         super(ColorizationCNN, self).__init__()
-    
-        # Encoder ()
-        # self.encoder = nn.Sequential(
-        #     nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1),  # 640x480
-        #     nn.BatchNorm2d(64),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(128),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(256),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(512),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(512),
-        #     nn.ReLU(),
-        # )
-
-        # # Decoder (no upsampling needed since spatial size is constant)
-        # self.decoder = nn.Sequential(
-        #     nn.Conv2d(512, 256, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(256),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(128),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(64),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(64, 32, kernel_size=3, stride=1, padding=1),
-        #     nn.BatchNorm2d(32),
-        #     nn.ReLU(),
-
-        #     nn.Conv2d(32, 2, kernel_size=3, stride=1, padding=1),
-        #     nn.Tanh(),  # Output: a*, b*
-        # )
         
         # Downsampling with Convolution, Batch Normalization
-        self.down1 = self.upconv_layer(1, 64)
+        self.down1 = self.upconv_layer(1, 64, 3, 1, 1)
         self.down2 = self.upconv_layer(64, 128)
         self.down3 = self.upconv_layer(128, 256)
         self.down4 = self.upconv_layer(256, 512)
-        self.down5 = self.upconv_layer(512, 512)
+        self.down5 = self.upconv_layer(512, 1024)
+        self.down6 = self.upconv_layer(1024, 2048)
         
-        self.up5 = self.downconv_layer(512, 512)
+        # self.up5 = self.downconv_layer(512, 512)
+        # self.up4 = self.downconv_layer(512, 256)
+        # self.up3 = self.downconv_layer(256, 128)
+        # self.up2 = self.downconv_layer(128, 64)
+        # self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
+        self.up6 = self.downconv_layer(2048, 1024)
+        self.up5 = self.downconv_layer(1024, 512)
         self.up4 = self.downconv_layer(512, 256)
         self.up3 = self.downconv_layer(256, 128)
         self.up2 = self.downconv_layer(128, 64)
-        self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
+        self.up1 = self.downconv_layer(64, 2, 3)
+
         
         
     
-    def upconv_layer(self, in_channels, out_channels):
+    def upconv_layer(self, in_channels, out_channels, ksize = 3, stride = 2, padding =1):
         return nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=ksize, stride=stride, padding=padding),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
     
-    def downconv_layer(self, in_channels, out_channels):
-        return nn.Sequential(
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=3, stride=2, padding=1, output_padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
+    def downconv_layer(self, in_channels, out_channels, ksize=4, stride=2, padding=1, is_tanh=False):
+        if not is_tanh:
+            return nn.Sequential(
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=ksize, stride=stride, padding=padding),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            return nn.Sequential(
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=ksize, padding=padding),
+                nn.BatchNorm2d(out_channels),
+                nn.Tanh()
+            )
+    
         
     def forward(self, x):
         # Performing downsampling
@@ -96,8 +67,10 @@ class ColorizationCNN(nn.Module):
         x = self.down3(x)
         x = self.down4(x)
         x = self.down5(x)
+        x = self.down6(x)
 
         # Performing upsampling
+        x = self.up6(x)
         x = self.up5(x)
         x = self.up4(x)
         x = self.up3(x)

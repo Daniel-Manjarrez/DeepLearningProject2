@@ -17,9 +17,13 @@ from skimage.color import rgb2lab, lab2rgb
 from sklearn.model_selection import train_test_split
 
 class ColorizationDataset(Dataset):
-    def __init__(self, color_image_paths, transform=None):
-        self.color_paths = color_image_paths
-        self.transform = transform
+    def __init__(self, image_paths, augment=False):
+        self.image_paths = image_paths
+        self.augment = augment
+        self.transform = transforms.Compose([
+            transforms.Resize((128, 128)),
+            transforms.RandomHorizontalFlip() if augment else transforms.Lambda(lambda x: x),
+        ])
 
     def __len__(self):
         return len(self.color_paths)
@@ -30,8 +34,8 @@ class ColorizationDataset(Dataset):
             img = self.transform(img)
 
         lab = rgb2lab(np.array(img)).astype("float32")
-        lab[:, :, 0] = lab[:, :, 0] / 100.0      # Normalize L to [0, 1]
-        lab[:, :, 1:] = lab[:, :, 1:] / 128.0    # Normalize ab to [-1, 1]
+        lab[:, :, 0] /= 100.0      # Normalize L to [0, 1]
+        lab[:, :, 1:] /= 128.0    # Normalize ab to [-1, 1]
 
         L = lab[:, :, 0:1]
         ab = lab[:, :, 1:]
