@@ -22,17 +22,19 @@ class ColorizationCNN(nn.Module):
         super(ColorizationCNN, self).__init__()
 
         # Downsampling with Convolution, Batch Normalization
-        # self.down1 = self.upconv_layer(1, 64)
-        # self.down2 = self.upconv_layer(64, 128)
-        # self.down3 = self.upconv_layer(128, 256)
-        # self.down4 = self.upconv_layer(256, 512)
-        # self.down5 = self.upconv_layer(512, 512)
+        self.down1 = self.upconv_layer(1, 64)
+        self.down2 = self.upconv_layer(64, 128)
+        self.down3 = self.upconv_layer(128, 256)
+        self.down4 = self.upconv_layer(256, 512)
+        self.down5 = self.upconv_layer(512, 512)
         
-        # self.up5 = self.downconv_layer(512, 512)
-        # self.up4 = self.downconv_layer(512, 256)
-        # self.up3 = self.downconv_layer(256, 128)
-        # self.up2 = self.downconv_layer(128, 64)
-        # self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
+        self.up5 = self.downconv_layer(512, 512)
+        self.up4 = self.downconv_layer(512, 256)
+        self.up3 = self.downconv_layer(256, 128)
+        self.up2 = self.downconv_layer(128, 64)
+        self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
+        
+        ''' Part 5 hyperparameter tuning attempts 
         
         # Increasing the number of channels in the downsampling layers
         # and decreasing in the upsampling layers
@@ -50,17 +52,19 @@ class ColorizationCNN(nn.Module):
         
         # Decrease the number of channels in the downsampling layers
         # and increase in the upsampling layers
-        self.down1 = self.upconv_layer(1, 16)   # Reduced from 64 to 16
-        self.down2 = self.upconv_layer(16, 32)  # Reduced from 128 to 32
-        self.down3 = self.upconv_layer(32, 64)  # Reduced from 256 to 64
-        self.down4 = self.upconv_layer(64, 128) # Reduced from 512 to 128
-        self.down5 = self.upconv_layer(128, 256) # Reduced from 512 to 256
+        # self.down1 = self.upconv_layer(1, 16)   # Reduced from 64 to 16
+        # self.down2 = self.upconv_layer(16, 32)  # Reduced from 128 to 32
+        # self.down3 = self.upconv_layer(32, 64)  # Reduced from 256 to 64
+        # self.down4 = self.upconv_layer(64, 128) # Reduced from 512 to 128
+        # self.down5 = self.upconv_layer(128, 256) # Reduced from 512 to 256
         
-        self.up5 = self.downconv_layer(256, 128) # Reduced from 512 to 128
-        self.up4 = self.downconv_layer(128, 64)  # Reduced from 256 to 64
-        self.up3 = self.downconv_layer(64, 32)   # Reduced from 128 to 32
-        self.up2 = self.downconv_layer(32, 16)   # Reduced from 64 to 16
-        self.up1 = self.downconv_layer(16, 2)  # Output remains 2 channels for a* and b*
+        # self.up5 = self.downconv_layer(256, 128) # Reduced from 512 to 128
+        # self.up4 = self.downconv_layer(128, 64)  # Reduced from 256 to 64
+        # self.up3 = self.downconv_layer(64, 32)   # Reduced from 128 to 32
+        # self.up2 = self.downconv_layer(32, 16)   # Reduced from 64 to 16
+        # self.up1 = self.downconv_layer(16, 2)  # Output remains 2 channels for a* and b*
+        
+        '''
     
     def upconv_layer(self, in_channels, out_channels, ksize = 3, stride = 2, padding =1):
         return nn.Sequential(

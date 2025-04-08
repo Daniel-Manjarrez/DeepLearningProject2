@@ -39,6 +39,23 @@ Experiment of chanigng the number of feature maps for interior CNNs to see if hi
     so changing these feature maps only increased
     the loss aka the changes were detrimental 
 
+First attempt at coloring: 
+- Tried to freeze the first 4 layers of the pre-trained model so deeper 
+layers were being ideally trained on but got substantially higher error
+Epoch 1/10: Training Loss = 0.0262
+Epoch 2/10: Training Loss = 0.0244
+Epoch 3/10: Training Loss = 0.0241
+Epoch 4/10: Training Loss = 0.0230
+Epoch 5/10: Training Loss = 0.0212
+Epoch 6/10: Training Loss = 0.0184
+Epoch 7/10: Training Loss = 0.0163
+Epoch 8/10: Training Loss = 0.0147
+Epoch 9/10: Training Loss = 0.0132
+Epoch 10/10: Training Loss = 0.0126
+Test MSE: 0.033902, 3.39% error somehow? Might not be the best evaluation measurement 
+
+
+
 ## Datasets 
 Download the RGBN Datasets from this link: https://gfx.cs.princeton.edu/gfx/proj/rgbn/ (I left them zipped and sent to ec2 instance, then unzipped once at ec2 using ```unzip \*.zip```)
 
