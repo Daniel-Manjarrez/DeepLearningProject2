@@ -266,7 +266,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     # Determine whether we're running the model on cuda or cpu 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda")
     model.to(device)
     
     # Running with 10 epochs
