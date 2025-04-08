@@ -128,7 +128,7 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
                 ab = preds[j].cpu().numpy().transpose(1, 2, 0) * 128
                 lab = np.zeros((L.shape[0], L.shape[1], 3), dtype=np.float32)
                 lab[:, :, 0] = L
-                # lab[:, :, 1:] = ab
+                lab[:, :, 1:] = ab
                 lab[:, :, 1:] = np.clip(lab[:, :, 1:], -128, 127)
                 rgb = lab2rgb(lab)
                 rgb_img = (rgb * 255).astype(np.uint8)
