@@ -50,7 +50,7 @@ class ColorizationCNN(nn.Module):
             )
         else:
             return nn.Sequential(
-                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=ksize, padding=padding),
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=ksize, stride=stride, padding=padding),
                 nn.BatchNorm2d(out_channels),
                 nn.Tanh()
             )
