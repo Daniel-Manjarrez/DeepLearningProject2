@@ -9,6 +9,7 @@ import numpy as np
 from skimage.color import rgb2lab, lab2rgb
 from torchvision.transforms import ToTensor
 import random
+import time
 
 import glob
 
@@ -269,6 +270,8 @@ def main():
     device = torch.device("cpu")
     model.to(device)
     
+    train_start_time = time.time()
+    
     # Running with 10 epochs
     num_epochs = 10
     for epoch in range(num_epochs):
@@ -302,7 +305,14 @@ def main():
         # print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/loss.item():.4f}")
         print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
         # print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss:.4f}")
-
+        
+    train_end_time = time.time()
+    print(f"Training time: {train_end_time - train_start_time:.2f} seconds")
+    # Write the runtime to a file
+    output_file = "cpu_runtime_log.txt"  # Specify the file name
+    with open(output_file, "a") as f:
+        print(f"Training time: {train_end_time - train_start_time:.2f} seconds", file=f)
+        print(f"---------------------------------------", file=f)
     
     # Construct path to the predicted colorized img directory
     predict_dir = os.path.join(base_dir, "PredictedColorizedImg/")
@@ -319,4 +329,23 @@ def main():
     evaluate_and_save(model, test_loader, device=device)
 
 if __name__ == "__main__":
+    # Record the start time
+    start_time = time.time()
+    
+    # Call the main function
     main()
+    
+    # Record the end time
+    end_time = time.time()
+    
+    # Calculate the total runtime
+    total_time = end_time - start_time
+    
+    # Write the runtime to a file
+    output_file = "cpu_runtime_log.txt"  # Specify the file name
+    with open(output_file, "a") as f:
+        print(f"---------------------------------------", file=f)
+        print(f"Total runtime: {total_time:.2f} seconds", file=f)
+    
+    # Print to console total runtime too 
+    print(f"Total runtime: {total_time:.2f} seconds")
