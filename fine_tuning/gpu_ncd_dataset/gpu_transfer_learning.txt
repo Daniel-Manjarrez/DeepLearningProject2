@@ -1,0 +1,13 @@
+Epoch 1/10: Training Loss = 0.0167, Validation Loss = 0.0133
+Epoch 2/10: Training Loss = 0.0142, Validation Loss = 0.0121
+Epoch 3/10: Training Loss = 0.0133, Validation Loss = 0.0118
+Epoch 4/10: Training Loss = 0.0125, Validation Loss = 0.0118
+Epoch 5/10: Training Loss = 0.0123, Validation Loss = 0.0112
+Epoch 6/10: Training Loss = 0.0108, Validation Loss = 0.0105
+Epoch 7/10: Training Loss = 0.0102, Validation Loss = 0.0100
+Epoch 8/10: Training Loss = 0.0098, Validation Loss = 0.0097
+Epoch 9/10: Training Loss = 0.0092, Validation Loss = 0.0096
+Epoch 10/10: Training Loss = 0.0089, Validation Loss = 0.0095
+Test MSE: 0.009588
+Average PSNR: 235.75 dB
+Average SSIM: 8.8314

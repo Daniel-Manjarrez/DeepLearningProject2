@@ -328,6 +328,11 @@ def main():
     # After training, save predictions
     evaluate_and_save(model, test_loader, device=device)
 
+    # Save the model weights after training for transfer learning 
+    model_save_path = os.path.join(base_dir, "fine_tuning/gpu_ncd_dataset", "colorization_model_face.pth")
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model weights saved to {model_save_path}")
+
 if __name__ == "__main__":
         # Record the start time
     start_time = time.time()
