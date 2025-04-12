@@ -9,6 +9,8 @@ import numpy as np
 from skimage.color import rgb2lab, lab2rgb
 from torchvision.transforms import ToTensor
 import random
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from skimage.metrics import structural_similarity as ssim
 
 import glob
 
@@ -33,38 +35,7 @@ class ColorizationCNN(nn.Module):
         self.up3 = self.downconv_layer(256, 128)
         self.up2 = self.downconv_layer(128, 64)
         self.up1 = self.downconv_layer(64, 2)  # Output 2 channels for a* and b*
-        
-        ''' Part 5 hyperparameter tuning attempts 
-        
-        # Increasing the number of channels in the downsampling layers
-        # and decreasing in the upsampling layers
-        # self.down1 = self.upconv_layer(1, 32)   # Reduced from 64 to 32
-        # self.down2 = self.upconv_layer(32, 64)  # Reduced from 128 to 64
-        # self.down3 = self.upconv_layer(64, 128) # Reduced from 256 to 128
-        # self.down4 = self.upconv_layer(128, 256) # Reduced from 512 to 256
-        # self.down5 = self.upconv_layer(256, 256) # Reduced from 512 to 256
-
-        # self.up5 = self.downconv_layer(256, 256) # Reduced from 512 to 256
-        # self.up4 = self.downconv_layer(256, 128) # Reduced from 256 to 128
-        # self.up3 = self.downconv_layer(128, 64)  # Reduced from 128 to 64
-        # self.up2 = self.downconv_layer(64, 32)   # Reduced from 64 to 32
-        # self.up1 = self.downconv_layer(32, 2)    # Output remains 2 channels for a* and b*
-        
-        # Decrease the number of channels in the downsampling layers
-        # and increase in the upsampling layers
-        # self.down1 = self.upconv_layer(1, 16)   # Reduced from 64 to 16
-        # self.down2 = self.upconv_layer(16, 32)  # Reduced from 128 to 32
-        # self.down3 = self.upconv_layer(32, 64)  # Reduced from 256 to 64
-        # self.down4 = self.upconv_layer(64, 128) # Reduced from 512 to 128
-        # self.down5 = self.upconv_layer(128, 256) # Reduced from 512 to 256
-        
-        # self.up5 = self.downconv_layer(256, 128) # Reduced from 512 to 128
-        # self.up4 = self.downconv_layer(128, 64)  # Reduced from 256 to 64
-        # self.up3 = self.downconv_layer(64, 32)   # Reduced from 128 to 32
-        # self.up2 = self.downconv_layer(32, 16)   # Reduced from 64 to 16
-        # self.up1 = self.downconv_layer(16, 2)  # Output remains 2 channels for a* and b*
-        
-        '''
+    
     
     def upconv_layer(self, in_channels, out_channels, ksize = 3, stride = 2, padding =1):
         return nn.Sequential(
@@ -105,26 +76,22 @@ class ColorizationCNN(nn.Module):
         return x
 
 # ==== DATASET ====
-class ColorizationDataset(Dataset):
-    def __init__(self, gray_image_paths, color_image_paths, augment=False):
-        self.gray_image_paths = gray_image_paths
+class ColorfulOriginalDataset(Dataset):
+    def __init__(self, color_image_paths, augment=False, noise_std=0.05):
         self.color_image_paths = color_image_paths
         self.augment = augment
+        self.noise_std = noise_std  # Standard deviation of noise
         self.transform = transforms.Compose([
             transforms.Resize((128, 128)),
             transforms.RandomHorizontalFlip() if augment else transforms.Lambda(lambda x: x),
         ])
 
     def __len__(self):
-        return len(self.gray_image_paths)
+        return len(self.color_image_paths)
 
     def __getitem__(self, idx):
-        # Load grayscale image
-        gray_img = Image.open(self.gray_image_paths[idx]).convert("L")  # Grayscale
-        gray_img = self.transform(gray_img)
-
         # Load color image
-        color_img = Image.open(self.color_image_paths[idx]).convert("RGB")  # Color
+        color_img = Image.open(self.color_image_paths[idx]).convert("RGB")
         color_img = self.transform(color_img)
 
         # Convert color image to LAB
@@ -132,10 +99,9 @@ class ColorizationDataset(Dataset):
         lab[:, :, 0] /= 100.0      # Normalize L to [0, 1]
         lab[:, :, 1:] /= 128.0    # Normalize ab to [-1, 1]
 
-        L = np.array(gray_img) / 255.0  # Normalize grayscale image to [0, 1]
-        L = np.expand_dims(L, axis=-1)  # Add channel dimension
-        ab = lab[:, :, 1:]
-
+        L = lab[:, :, 0:1]  # Extract grayscale (L channel)
+        ab = lab[:, :, 1:]  # Extract color channels (a and b)
+        
         L_tensor = torch.from_numpy(L).permute(2, 0, 1).float()  # Shape: [1, H, W]
         ab_tensor = torch.from_numpy(ab).permute(2, 0, 1).float()  # Shape: [2, H, W]
 
@@ -143,12 +109,21 @@ class ColorizationDataset(Dataset):
 
 # ==== TEST, EVALUATE, AND SAVE MODEL IMAGES ====
 def evaluate_and_save(model, test_loader, device, output_folder="PredictedColorizedImg"):
-    # make the PredictedColorizedImg directory if it exist
+    
+    # Remove existing files in the output directory
+    if os.path.exists(output_folder):
+        files = glob.glob(os.path.join(output_folder, '*'))
+        for f in files:
+            os.remove(f)
+            
+    # Make the output directory if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
 
-    # Evaluate the model 
+    # Evaluate the model
     model.eval()
     total_loss = 0
+    total_psnr = 0
+    total_ssim = 0
     count = 0
 
     with torch.no_grad():
@@ -158,58 +133,92 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
             preds = model(L_batch)
             loss = nn.functional.mse_loss(preds, ab_batch, reduction='mean')
             total_loss += loss.item()
-            # count += L_batch.size(0)
             count += 1
 
-            # Save RGB colorized results
+            # Save RGB colorized results and calculate PSNR/SSIM
             for j in range(L_batch.size(0)):
+                # Convert LAB to RGB for ground truth and predictions
                 L = L_batch[j].cpu().numpy().squeeze() * 100
-                ab = preds[j].cpu().numpy().transpose(1, 2, 0) * 128
-                lab = np.zeros((L.shape[0], L.shape[1], 3), dtype=np.float32)
-                lab[:, :, 0] = L
-                lab[:, :, 1:] = ab
-                rgb = lab2rgb(lab)
-                rgb_img = (rgb * 255).astype(np.uint8)
+                ab_pred = preds[j].cpu().numpy().transpose(1, 2, 0) * 128
+                ab_gt = ab_batch[j].cpu().numpy().transpose(1, 2, 0) * 128
+
+                # Clamp predicted ab values to the valid range
+                ab_pred = np.clip(ab_pred, -128, 127)
+                ab_gt = np.clip(ab_gt, -128, 127)
+
+                lab_pred = np.zeros((L.shape[0], L.shape[1], 3), dtype=np.float32)
+                lab_gt = np.zeros((L.shape[0], L.shape[1], 3), dtype=np.float32)
+
+                lab_pred[:, :, 0] = L
+                lab_pred[:, :, 1:] = ab_pred
+                lab_gt[:, :, 0] = L
+                lab_gt[:, :, 1:] = ab_gt
+
+                rgb_pred = np.clip(lab2rgb(lab_pred), 0, 1)  # Ensure values are in [0, 1]
+                rgb_gt = np.clip(lab2rgb(lab_gt), 0, 1)      # Ensure values are in [0, 1]
+
+                # Sanity check for normalization
+                assert np.max(rgb_pred) <= 1.0 and np.min(rgb_pred) >= 0.0, "rgb_pred is not normalized!"
+                assert np.max(rgb_gt) <= 1.0 and np.min(rgb_gt) >= 0.0, "rgb_gt is not normalized!"
+
+                # Save predicted image
+                rgb_img = (rgb_pred * 255).astype(np.uint8)
                 img = Image.fromarray(rgb_img)
                 img.save(os.path.join(output_folder, f"test_img_{i*10 + j}.png"))
 
-    # mse = total_loss / (count * 2 * 640 * 480)
+                # Calculate PSNR and SSIM
+                psnr_value = psnr(rgb_gt, rgb_pred, data_range=1.0)  # Use 1.0 for normalized images
+                ssim_value = ssim(rgb_gt, rgb_pred, win_size=5, channel_axis=-1, data_range=1.0)
 
-    # Print out mse loss of the testing
+                if psnr_value > 100 or ssim_value > 1:  # Unusually high values
+                    print(f"Debugging image {i*10 + j}")
+                    Image.fromarray((rgb_gt * 255).astype(np.uint8)).save(f"debug_gt_{i*10 + j}.png")
+                    Image.fromarray((rgb_pred * 255).astype(np.uint8)).save(f"debug_pred_{i*10 + j}.png")
+                    np.save(f"debug_lab_gt_{i*10 + j}.npy", lab_gt)  # Save LAB ground truth
+                    np.save(f"debug_lab_pred_{i*10 + j}.npy", lab_pred)  # Save LAB prediction
+
+                total_psnr += psnr_value
+                total_ssim += ssim_value
+
+    # Calculate average metrics
     mse = total_loss / count
+    avg_psnr = total_psnr / count
+    avg_ssim = total_ssim / count
+
+    # Print out evaluation metrics
     print(f"Test MSE: {mse:.6f}")
+    print(f"Average PSNR: {avg_psnr:.2f} dB")
+    print(f"Average SSIM: {avg_ssim:.4f}")
 
 # ==== GENERATE AUGMENTED IMAGES ====
-def generate_augmented_images(img_to_aug):
-        # Set torch float type
-    torch.set_default_dtype(torch.float32)
+def generate_augmented_images(img_to_aug, output_dir="augmented"):
+    # Ensure the augmented directory is in the same directory as this script
+    output_dir = os.path.join(os.getcwd(), output_dir)
 
-    # Paths
-    augmented_dir = "augmented"
+    # Remove existing files in the augmented directory
+    if os.path.exists(output_dir):
+        files = glob.glob(os.path.join(output_dir, '*'))
+        for f in files:
+            os.remove(f)
 
-    # Create folders if they do not exist
-    os.makedirs(augmented_dir, exist_ok=True)
+    # Create the augmented directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
 
     # Read in every image and resize them to 128 by 128
     original_images = []
     for f in img_to_aug:
         img = cv2.imread(f)  # BGR read in
+        if img is None:  # Skip unreadable files
+            print(f"Warning: Unable to read image {f}. Skipping.")
+            continue
         img = cv2.resize(img, (128, 128))
         original_images.append(img)
 
     original_images = np.array(original_images)
     print(f"Loaded {len(original_images)} images")
 
-    # Convert to tensor: [n_images, C, H, W]
-    original_tensor = torch.stack([ToTensor()(img) for img in original_images])
-    original_tensor = original_tensor.permute(0, 1, 2, 3)  # Still [N, C, H, W]
-
-    # Shuffle images
-    perm = torch.randperm(original_tensor.size(0))
-    original_tensor = original_tensor[perm]
-
     # Data augmentation factor
-    AUG_FACTOR = 10
+    AUG_FACTOR = 5  # Number of augmentations per image
     augmented_images = []
 
     def augment_image(img):
@@ -219,14 +228,14 @@ def generate_augmented_images(img_to_aug):
 
         # Random crop and resize
         h, w = img.shape[:2]
-        crop_size = random.randint(int(0.8 * h), h)
+        crop_size = random.randint(int(0.7 * h), h)  # Reduce crop size to make it more challenging
         y = random.randint(0, h - crop_size)
         x = random.randint(0, w - crop_size)
         cropped = img[y:y+crop_size, x:x+crop_size]
         cropped = cv2.resize(cropped, (128, 128))
 
         # Random brightness scale
-        scale = random.uniform(0.6, 1.0)
+        scale = random.uniform(0.5, 1.2)  # Increase brightness variation
         scaled = np.clip(cropped * scale, 0, 255).astype(np.uint8)
 
         return scaled
@@ -240,11 +249,11 @@ def generate_augmented_images(img_to_aug):
 
             # Save RGB version
             filename = f"aug_{i}_{j}.jpg"
-            cv2.imwrite(os.path.join(augmented_dir, filename), aug_img)
+            cv2.imwrite(os.path.join(output_dir, filename), aug_img)
 
             counter += 1
 
-    print(f"Generated and saved {counter} augmented images with LAB splits.")
+    print(f"Generated and saved {counter} augmented images.")
 
 # ==== LOAD PRETRAINED MODEL FOR NCDataset ====
 def load_pretrained_model(model, model_path, device):
@@ -265,30 +274,55 @@ def get_image_paths_from_directory(directory):
                 image_paths.append(os.path.join(root, file))
     return image_paths
 
-def transfer_learning_on_ncdataset(model, device, gray_dir, color_dir, num_epochs=10, batch_size=10, learning_rate=1e-4):
-    # Fetch paired grayscale and color image paths
-    gray_image_paths, color_image_paths = get_paired_image_paths(gray_dir, color_dir)
+def transfer_learning_on_ncdataset(model, device, color_dir, num_epochs=10, batch_size=10, initial_lr=1e-4, unfreeze_interval=3):
+    # Fetch all image paths from the ColorfulOriginal dataset
+    color_image_paths = get_image_paths_from_directory(color_dir)
 
-    # Split into training (90%) and testing (10%) datasets
-    train_size = int(0.9 * len(gray_image_paths))
-    test_size = len(gray_image_paths) - train_size
-    train_gray, test_gray = random_split(gray_image_paths, [train_size, test_size])
-    train_color, test_color = random_split(color_image_paths, [train_size, test_size])
+    # Generate augmented images in the same directory as this script
+    augmented_dir = os.path.join(os.getcwd(), "augmented")
+    generate_augmented_images(color_image_paths, output_dir=augmented_dir)
+
+    # Combine original and augmented image paths
+    augmented_image_paths = get_image_paths_from_directory(augmented_dir)
+    all_image_paths = color_image_paths + augmented_image_paths
+
+    # Split into training (80%), validation (10%), and testing (10%) datasets
+    train_size = int(0.8 * len(all_image_paths))
+    val_size = int(0.1 * len(all_image_paths))
+    test_size = len(all_image_paths) - train_size - val_size
+    train_color, val_color, test_color = random_split(all_image_paths, [train_size, val_size, test_size])
 
     # Create datasets and dataloaders
-    train_dataset = ColorizationDataset(train_gray, train_color)
-    test_dataset = ColorizationDataset(test_gray, test_color)
+    train_dataset = ColorfulOriginalDataset(train_color, augment=True)
+    val_dataset = ColorfulOriginalDataset(val_color, augment=False)
+    test_dataset = ColorfulOriginalDataset(test_color, augment=False)
+
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # Define loss function and optimizer
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=initial_lr, weight_decay=1e-4)
+
+    # Learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
     # Fine-tune the model
     model.to(device)
+    num_layers_to_unfreeze = 4  # Start with the first 4 layers frozen
+
     for epoch in range(num_epochs):
-        total_loss = 0
+        # Unfreeze additional layers at specified intervals
+        if epoch > 0 and epoch % unfreeze_interval == 0:
+            num_layers_to_unfreeze += 1
+            unfreeze_layers(model, num_layers_to_unfreeze)
+            print(f"Epoch {epoch}: Unfroze {num_layers_to_unfreeze} layers.")
+
+        total_train_loss = 0
+        total_val_loss = 0
+
+        # Training
         model.train()
         for L_batch, ab_batch in train_loader:
             L_batch, ab_batch = L_batch.to(device), ab_batch.to(device)
@@ -299,9 +333,21 @@ def transfer_learning_on_ncdataset(model, device, gray_dir, color_dir, num_epoch
             loss.backward()
             optimizer.step()
 
-            total_loss += loss.item()
+            total_train_loss += loss.item()
 
-        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
+        # Validation
+        model.eval()
+        with torch.no_grad():
+            for L_batch, ab_batch in val_loader:
+                L_batch, ab_batch = L_batch.to(device), ab_batch.to(device)
+                preds = model(L_batch)
+                loss = criterion(preds, ab_batch)
+                total_val_loss += loss.item()
+
+        # Step the scheduler
+        scheduler.step()
+
+        print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_train_loss/len(train_loader):.4f}, Validation Loss = {total_val_loss/len(val_loader):.4f}")
 
     # Evaluate the model on the test set
     evaluate_and_save(model, test_loader, device=device, output_folder="PredictedColorizedImg_NCDataset")
@@ -314,26 +360,20 @@ def freeze_layers(model, num_layers_to_freeze):
     for layer in layers[:num_layers_to_freeze]:
         for param in layer.parameters():
             param.requires_grad = False
+            
+def unfreeze_layers(model, num_layers_to_unfreeze):
+    """
+    Unfreeze the first `num_layers_to_unfreeze` layers of the model.
+    """
+    layers = list(model.children())  # Get all layers of the model
+    for layer in layers[:num_layers_to_unfreeze]:
+        for param in layer.parameters():
+            param.requires_grad = True
 
-def get_paired_image_paths(gray_dir, color_dir):
-    gray_image_paths = []
-    color_image_paths = []
-
-    for root, _, files in os.walk(gray_dir):
-        for file in files:
-            if file.lower().endswith(('.jpg', '.jpeg', '.png')):
-                gray_path = os.path.join(root, file)
-                color_path = os.path.join(color_dir, os.path.relpath(gray_path, gray_dir))
-                if os.path.exists(color_path):
-                    gray_image_paths.append(gray_path)
-                    color_image_paths.append(color_path)
-
-    return gray_image_paths, color_image_paths
 
 # ==== MAIN ====
 def main():
     base_dir = os.getcwd()
-    gray_dir = os.path.join(base_dir, "Gray")
     color_dir = os.path.join(base_dir, "ColorfulOriginal")
 
     # Load the pretrained model
@@ -345,8 +385,8 @@ def main():
     # Freeze the first 4 layers of the model
     freeze_layers(model, num_layers_to_freeze=4)
 
-    # Perform transfer learning on the NCDataset
-    transfer_learning_on_ncdataset(model, device, gray_dir, color_dir)
+    # Perform transfer learning on the ColorfulOriginal dataset
+    transfer_learning_on_ncdataset(model, device, color_dir)
 
 if __name__ == "__main__":
     main()
