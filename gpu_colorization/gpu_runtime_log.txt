@@ -2,3 +2,9 @@
 Training time: 317.81 seconds
 Total runtime: 323.22 seconds
 ---------------------------------------
+Training time: 315.38 seconds
+---------------------------------------
+Training time: 312.01 seconds
+---------------------------------------
+---------------------------------------
+Total runtime: 316.70 seconds
