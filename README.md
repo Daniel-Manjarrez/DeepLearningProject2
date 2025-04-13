@@ -1,6 +1,5 @@
 # Project 2 Report | Convolutional Neural Networks & Computer Graphics
-Image colorization is the process of estimating RGB colors for grayscale images to
-improve their aesthetic and perceptual quality [Anwar et al.(2020)]. 
+Image colorization model for estimating RGB colors for grayscale images or video frames to improve their aesthetic and perceptual quality. Data preparation script utilized to prepare data. Includes script for training and testing a CNN regressor for automatic colorization of an inputted black and white image. Also includes transfer learning exercise for developing a strategy to fine-tune the network for the best performance on a new benchmark dataset
 
 ## Part 1: Dataset Processing
 
