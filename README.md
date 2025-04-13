@@ -1,10 +1,6 @@
 # Project 2 Report | Convolutional Neural Networks & Computer Graphics
- Image manipulation and two player games are common graphics applications. In this project, we
- evaluate the performance of classifiers and regressors on an image segmentation task, and
- a simple two player game. Our single classifier program generates statistical accuracy and
- confusion matrices for several classifiers and regressors (linear regression, linear SVM, k-nearest
- neighbors, and multilayer perceptron) using provided images with normals, and game play datasets
- (*Tic Tac Toe*). 
+Image colorization is the process of estimating RGB colors for grayscale images to
+improve their aesthetic and perceptual quality [Anwar et al.(2020)]. 
 
 ## Part 1: Dataset Processing
 
