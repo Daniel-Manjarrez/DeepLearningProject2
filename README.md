@@ -108,13 +108,5 @@ python gpu_color_img.py
 
 ---
 
-
-## Datasets 
-Download the RGBN Datasets from this link: https://gfx.cs.princeton.edu/gfx/proj/rgbn/ (I left them zipped and sent to ec2 instance, then unzipped once at ec2 using ```unzip \*.zip```)
-
-Download the Tic Tac Toe datasets from this link: https://courseworks2.columbia.edu/files/23246302/download?download_frd=1 (courseworks files section)
-
----
-
 ## References
 Anwar, S., Tahir, M., & Mian, A. (2020). Image Colorization: A Survey and Dataset. IEEE Transactions on Pattern Analysis and Machine Intelligence. https://doi.org/10.1109/TPAMI.2020.2977027
