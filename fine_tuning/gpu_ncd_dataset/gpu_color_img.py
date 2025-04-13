@@ -13,6 +13,9 @@ from skimage.metrics import peak_signal_noise_ratio as psnr
 from skimage.metrics import structural_similarity as ssim
 
 import glob
+import warnings
+
+warnings.filterwarnings("ignore", message=".*Conversion from CIE-LAB, via XYZ to sRGB color space resulted in.*")
 
 # Set default tensor type
 torch.set_default_dtype(torch.float32)
