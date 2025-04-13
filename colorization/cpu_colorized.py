@@ -140,6 +140,9 @@ def evaluate_and_save(model, test_loader, device, output_folder="PredictedColori
     # Print out mse loss of the testing
     mse = total_loss / count
     print(f"Test MSE: {mse:.6f}")
+    output_file = "cpu_colorization.txt"  # Specify the file name
+    with open(output_file, "a") as f:
+        print(f"Test MSE: {mse:.6f}", file=f)
 
 # ==== GENERATE AUGMENTED IMAGES ====
 def generate_augmented_images(img_to_aug):
@@ -305,6 +308,11 @@ def main():
         # print(f"Epoch {epoch+1}/{num_epochs}: Loss = {total_loss/loss.item():.4f}")
         print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}")
         # print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss:.4f}")
+        
+        output_file = "cpu_colorization.txt"  # Specify the file name
+        with open(output_file, "a") as f:
+            print(f"--- CPU Colorization Results ---", file=f)
+            print(f"Epoch {epoch+1}/{num_epochs}: Training Loss = {total_loss/len(train_loader):.4f}", file=f)
         
     train_end_time = time.time()
     print(f"Training time: {train_end_time - train_start_time:.2f} seconds")
